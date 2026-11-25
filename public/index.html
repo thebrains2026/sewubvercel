@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Friend Bot</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f7f8fa;
+      color: #1f2937;
+      display: flex;
+      min-height: 100vh;
+    }
+    aside {
+      width: 280px;
+      background: #ffffff;
+      border-right: 1px solid #e5e7eb;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    main {
+      flex: 1;
+      padding: 32px 40px;
+      max-width: 1100px;
+    }
+    h1 { margin: 0 0 12px; font-size: 28px; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    .info-box {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+    }
+    label.title {
+      font-size: 13px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #recordBtn {
+      background: #ef4444;
+      color: #fff;
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+    }
+    #recordBtn.recording {
+      background: #b91c1c;
+      animation: pulse 1.2s infinite;
+    }
+    #resetBtn {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    #status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    #userAudio {
+      width: 100%;
+      margin-top: 14px;
+      display: none;
+    }
+    #chatBox {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 6px;
+    }
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .msg-row.user { justify-content: flex-start; }
+    .msg-row.bot { justify-content: flex-end; }
+    .bubble {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .user .bubble { background: #007aff; color: #fff; }
+    .bot .bubble { background: #e5e7eb; color: #111827; }
+    .time { font-size: 11px; color: #9ca3af; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    @media (max-width: 820px) {
+      body { flex-direction: column; }
+      aside { width: 100%; border-right: none; border-bottom: 1px solid #e5e7eb; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div>
+      <label class="title" for="apiKey">OPENAI API 키</label>
+      <input id="apiKey" type="password" placeholder="Enter Your API Key" />
+    </div>
+    <hr style="width:100%; border:0; border-top:1px solid #e5e7eb;" />
+    <div>
+      <span class="title">GPT 모델</span>
+      <div class="radio-group">
+        <label><input type="radio" name="model" value="gpt-4o-mini" checked /> gpt-4o-mini</label>
+        <label><input type="radio" name="model" value="gpt-4o" /> gpt-4o</label>
+        <label><input type="radio" name="model" value="gpt-4" /> gpt-4</label>
+        <label><input type="radio" name="model" value="gpt-3.5-turbo" /> gpt-3.5-turbo</label>
+      </div>
+    </div>
+    <hr style="width:100%; border:0; border-top:1px solid #e5e7eb;" />
+    <button id="resetBtn" type="button">초기화</button>
+  </aside>
+
+  <main>
+    <h1>My Friend Bot</h1>
+    <div class="info-box">
+      <strong>My Friend Bot에 관하여</strong>
+      <ul style="margin:8px 0 0; padding-left:20px;">
+        <li>백엔드 API는 Vercel Serverless FastAPI로 구성되었습니다.</li>
+        <li>STT(Speech-To-Text)는 OpenAI Whisper AI를 활용합니다.</li>
+        <li>답변은 OpenAI GPT 모델을 활용합니다.</li>
+        <li>TTS(Text-To-Speech)는 Google Translate TTS(gTTS)를 활용합니다.</li>
+      </ul>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>질문하기</h2>
+        <button id="recordBtn" type="button">클릭하여 녹음하기</button>
+        <div id="status">버튼을 눌러 음성을 녹음한 뒤 다시 누르면 전송됩니다.</div>
+        <audio id="userAudio" controls></audio>
+        <audio id="botAudio" style="display:none;"></audio>
+      </section>
+
+      <section class="card">
+        <h2>질문/답변</h2>
+        <div id="chatBox"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const SYSTEM_PROMPT = {
+      role: "system",
+      content: "You are a thoughtful assistant. Respond to all input in 25 words and answer in korea"
+    };
+
+    let messages = [SYSTEM_PROMPT];
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    const recordBtn = document.getElementById("recordBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusEl = document.getElementById("status");
+    const userAudio = document.getElementById("userAudio");
+    const botAudio = document.getElementById("botAudio");
+    const chatBox = document.getElementById("chatBox");
+
+    function nowTime() {
+      const d = new Date();
+      return d.toTimeString().slice(0, 5);
+    }
+
+    function appendMessage(sender, text) {
+      const row = document.createElement("div");
+      row.className = `msg-row ${sender}`;
+      const time = nowTime();
+
+      if (sender === "user") {
+        row.innerHTML = `<div class="bubble"></div><div class="time">${time}</div>`;
+      } else {
+        row.innerHTML = `<div class="time">${time}</div><div class="bubble"></div>`;
+      }
+      row.querySelector(".bubble").textContent = text;
+      chatBox.appendChild(row);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    resetBtn.addEventListener("click", () => {
+      messages = [SYSTEM_PROMPT];
+      chatBox.innerHTML = "";
+      userAudio.style.display = "none";
+      userAudio.src = "";
+      statusEl.textContent = "대화 내역이 초기화되었습니다.";
+    });
+
+    recordBtn.addEventListener("click", async () => {
+      const apiKey = document.getElementById("apiKey").value.trim();
+      if (!apiKey) {
+        alert("왼쪽 사이드바에서 OpenAI API 키를 입력해 주세요.");
+        return;
+      }
+
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioChunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = async () => {
+            stream.getTracks().forEach((t) => t.stop());
+            const blob = new Blob(audioChunks, { type: "audio/webm" });
+            userAudio.src = URL.createObjectURL(blob);
+            userAudio.style.display = "block";
+            await sendAudio(blob, apiKey);
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          recordBtn.textContent = "녹음중... (클릭하여 전송)";
+          recordBtn.classList.add("recording");
+          statusEl.textContent = "말씀하신 뒤 버튼을 다시 클릭하세요.";
+        } catch (err) {
+          statusEl.textContent = "마이크 권한을 허용해 주세요: " + err.message;
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.textContent = "클릭하여 녹음하기";
+        recordBtn.classList.remove("recording");
+        statusEl.textContent = "음성 인식 및 답변 생성 중...";
+        recordBtn.disabled = true;
+      }
+    });
+
+    async function sendAudio(blob, apiKey) {
+      const model = document.querySelector('input[name="model"]:checked').value;
+      const formData = new FormData();
+      formData.append("file", blob, "recording.webm");
+      formData.append("api_key", apiKey);
+      formData.append("model", model);
+      formData.append("messages_json", JSON.stringify(messages));
+
+      try {
+        const res = await fetch("/api/voice-chat", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.detail || "요청 처리 실패");
+        }
+
+        messages = data.messages;
+        appendMessage("user", data.question);
+        appendMessage("bot", data.reply);
+
+        if (data.audio_base64) {
+          botAudio.src = `data:audio/mp3;base64,${data.audio_base64}`;
+          await botAudio.play();
+        }
+        statusEl.textContent = "완료되었습니다. 다시 녹음하려면 버튼을 누르세요.";
+      } catch (err) {
+        statusEl.textContent = "오류: " + err.message;
+      } finally {
+        recordBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
